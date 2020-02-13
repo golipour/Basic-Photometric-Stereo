@@ -129,7 +129,7 @@ def load_face_images(image_dir, channels=(0,)):
     return image_stack, scriptV
 
 
-def show_results(albedo, normals, fig_size=3, nan_to_zero=True):
+def show_results(albedo, normals, fig_size=3, ylabel='', nan_to_zero=True):
     
     n_ch = albedo.shape[2]
     
@@ -155,36 +155,41 @@ def show_results(albedo, normals, fig_size=3, nan_to_zero=True):
             im = imgs[j].T[i].T
             ax.imshow(im, cmap='gray')
             ax.set(xticks=[], yticks=[])
-            if j==0: ax.set_ylabel(f'channel {i+1}', fontsize=12)
+            if j==0: ax.set_ylabel(f'{ylabel}\nchannel {i+1}', fontsize=12)
             if i==0: 
                 ax.set_xlabel(titles[j], fontsize=12)
                 ax.xaxis.set_label_position('top')
 
 
-def show_model(height_map, albedo, fig_size=5, elev=25, azim=-60):
+def show_model(height_map, albedo, fig_size=5, elev=25, azim=-60, axes=None):
     
     h, w, n_ch = height_map.shape
     
-    fig = plt.figure(figsize=(fig_size*n_ch, fig_size), tight_layout=True)
+    if axes is None:
+        fig = plt.figure(figsize=(fig_size*n_ch, fig_size), tight_layout=True);
     
     X = np.arange(w)
     Y = np.arange(h)
     X, Y = np.meshgrid(X, Y)
 
-    l = max(w, h)/2.0 
+    l = max(w, h)/2.0
     
     for i in range(n_ch):
-        ax = fig.add_subplot(1, n_ch, i+1, projection='3d')
+        if axes is None:
+            ax = fig.add_subplot(1, n_ch, i+1, projection='3d');
+        else:
+            ax = axes;
+        
         Z = height_map[:, :, i]
         A = albedo[:, :, i]
     
-        ax.plot_surface(X, Z, Y, facecolors=cm.gray(A))
+        ax.plot_surface(X, Z, Y, facecolors=cm.gray(A));
     
-        ax.set(xlim=(0, w), ylim=(l, -l), zlim=(h, 0))
-        ax.set(xlabel='x', ylabel='z', zlabel='y')
-        ax.set(title = f'model for channel {i+1}')
-        ax.view_init(elev, azim)
-
+        ax.set(xlim=(0, w), ylim=(l, -l), zlim=(h, 0));
+        ax.set(xlabel='x', ylabel='z', zlabel='y');
+        ax.set(title = f'model for channel {i+1}');
+        ax.view_init(elev, azim);
+    
 
 def show_normals(normals, height_map, sampling_step=8, fig_size=5, elev=50, azim=60):
     
@@ -288,18 +293,43 @@ def show_samples_per_row(image_stack, scriptV, n_samples=5, fig_size=2.5, show_c
                 ax.imshow(image_stack[:, :, sample[j], i], cmap=color[i])
                 ax.set(xticks=[], yticks=[]);
                 if j==0: ax.set_title(f'channel {i+1}', fontsize=11)
+                    
 
+def show_samples_grid(image_stack, n_columns=5, fig_size=3):
 
-def show_outlaiers(SE, elev=60, azim=70):
+    _, _, n, n_ch = image_stack.shape
+
+    n_rows = np.int(np.ceil(n/n_columns))
+    
+    figsize=(fig_size*n_columns, fig_size*n_rows)
+    fig, axes = plt.subplots(n_rows, n_columns, figsize=figsize)
+    axes = axes.reshape(n_rows*n_columns) 
+    
+    for ax in axes: 
+        ax.set(xticks=[], yticks=[]);
+
+    for i in range(n):
+        ax = axes[i]
+        im=image_stack[:, :, i, :].squeeze()
+        
+        ax.imshow(im, cmap='gray')
+        ax.set_title(f'{im.mean():0.2f}')
+        
+
+def show_outlaiers(SE, elev=60, azim=70, axes=None):
     
     h, w , n_ch= SE.shape
     X, Y = np.meshgrid(np.arange(w), 
                        np.arange(h));
     
-    fig = plt.figure(figsize=(5*n_ch, 5))
+    if axes is None:
+        fig = plt.figure(figsize=(5*n_ch, 5));
 
     for i in range(n_ch):
-        ax = fig.add_subplot(1, n_ch, i+1, projection='3d')
+        if axes is None:
+            ax = fig.add_subplot(1, n_ch, i+1, projection='3d');
+        else:
+            ax = axes
         ax.plot_surface(X, Y, SE[:, :, i], cmap='Reds')
         ax.set_zlim(0.0, SE.max());
         ax.set_title(f'outlaiers in channel {i+1}', fontsize=12);
